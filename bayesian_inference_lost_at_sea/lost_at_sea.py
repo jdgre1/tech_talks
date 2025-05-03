@@ -25,6 +25,31 @@ class LostAtSea:
 
         self.all_endpoints_ = []
 
+    def bayesian_update_posterior(self, searched_cells, detection_prob=0.9):
+        """
+        Apply Bayesian update to posterior based on negative observations in searched cells.
+
+        Parameters:
+            searched_cells (list of tuple): List of (x, y) cell coordinates searched.
+            detection_prob (float): Probability of detecting the target if it's in the searched cell.
+
+        Returns:
+            np.ndarray: Updated posterior grid.
+        """
+        posterior = self.posterior_grid_.copy()
+
+        # Likelihood update: P(D | H) = 1 - detection_prob in searched cells, 1 elsewhere
+        likelihood = np.ones_like(posterior)
+        for x, y in searched_cells:
+            likelihood[x, y] = 1 - detection_prob  # Less likely target was here if not detected
+
+        # Apply Bayesian update
+        posterior *= likelihood
+        posterior /= posterior.sum()  # Renormalize to maintain valid probability distribution
+
+        return posterior
+
+
     @staticmethod
     def simulate_drift_endpoints(grid_cells=None, start_pos = np.array([2.0,7.0]), n_paths=1000, n_steps=100,
                                  drift_velocity=np.array([0.05, 0.01]), noise_std=0.1):
