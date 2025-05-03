@@ -1,9 +1,7 @@
-from math import sqrt
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 import pandas as pd
-import random
 import seaborn as sns
 
 
@@ -18,37 +16,10 @@ class LostAtSea:
         self.drift_velocity_ = drift_velocity
         self.noise_std_ = noise_std
         self.detection_probability = 0.9
-
         self.start_pos_ = np.array([grid_cells / 20, 4 * grid_cells / 23])  # Approx (2, 7)
         self.prior_grid_ = np.full((grid_cells, grid_cells), 1.0 / (grid_cells * grid_cells))
         self.posterior_grid_ = self.prior_grid_.copy()
-
         self.all_endpoints_ = []
-
-    def bayesian_update_posterior(self, searched_cells, detection_prob=0.9):
-        """
-        Apply Bayesian update to posterior based on negative observations in searched cells.
-
-        Parameters:
-            searched_cells (list of tuple): List of (x, y) cell coordinates searched.
-            detection_prob (float): Probability of detecting the target if it's in the searched cell.
-
-        Returns:
-            np.ndarray: Updated posterior grid.
-        """
-        posterior = self.posterior_grid_.copy()
-
-        # Likelihood update: P(D | H) = 1 - detection_prob in searched cells, 1 elsewhere
-        likelihood = np.ones_like(posterior)
-        for x, y in searched_cells:
-            likelihood[x, y] = 1 - detection_prob  # Less likely target was here if not detected
-
-        # Apply Bayesian update
-        posterior *= likelihood
-        posterior /= posterior.sum()  # Renormalize to maintain valid probability distribution
-
-        return posterior
-
 
     @staticmethod
     def simulate_drift_endpoints(grid_cells=None, start_pos = np.array([2.0,7.0]), n_paths=1000, n_steps=100,
@@ -148,26 +119,29 @@ class LostAtSea:
 
         return selected_cells
 
-    @staticmethod
-    def apply_search_penalty(posterior_grid, zone_centers, radius, penalty=0.1):
-        for x, y in zone_centers:
-            x_min = max(x - radius, 0)
-            x_max = min(x + radius + 1, posterior_grid.shape[1])
-            y_min = max(y - radius, 0)
-            y_max = min(y + radius + 1, posterior_grid.shape[0])
-            posterior_grid[y_min:y_max, x_min:x_max] *= penalty
-        posterior_grid /= posterior_grid.sum()  # renormalize
-        return posterior_grid
-    
+    def bayesian_update_posterior(self, searched_cells, detection_prob=0.9):
+        """
+        Apply Bayesian update to posterior based on negative observations in searched cells.
 
-    def update_posterior(self, searched_cells, detection_prob=0.9):
-        updated_grid = self.posterior_grid_.copy()
+        Parameters:
+            searched_cells (list of tuple): List of (x, y) cell coordinates searched.
+            detection_prob (float): Probability of detecting the target if it's in the searched cell.
+
+        Returns:
+            np.ndarray: Updated posterior grid.
+        """
+        posterior = self.posterior_grid_.copy()
+
+        # Likelihood update: P(D | H) = 1 - detection_prob in searched cells, 1 elsewhere
+        likelihood = np.ones_like(posterior)
         for x, y in searched_cells:
-            updated_grid[x, y] *= (1 - detection_prob)
-        
-        # Normalize to make it a valid probability distribution
-        updated_grid /= updated_grid.sum()
-        return updated_grid
+            likelihood[x, y] = 1 - detection_prob  # Less likely target was here if not detected
+
+        # Apply Bayesian update
+        posterior *= likelihood
+        posterior /= posterior.sum()  # Renormalize to maintain valid probability distribution
+
+        return posterior
     
     @staticmethod
     def plot_prior_grid(prior_grid, start_pos, end_pos, actual_drift_path, title='Prior Probability Grid', show_heatmap=True, ax=None):
