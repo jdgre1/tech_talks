@@ -7,7 +7,7 @@ import random
 # Parameters
 GRID_SIZE = 50
 NUM_ANTS = 50
-NUM_STEPS = 300
+NUM_STEPS = 600
 ALPHA_INIT = 1.0
 BETA_INIT = 2.0
 EVAPORATION_INIT = 0.1
